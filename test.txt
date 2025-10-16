@@ -1,12 +1,29 @@
-int main(int argc, char* argv[]) {
-    int a = 10;
-    if (a > 5) {
-        a = a + 1;
+int main() {
+    int x = 10;
+    int y = 20;
+    x = x + y;
+
+    if (x > 0) {
+        string message = "Hello";
     } else {
-        a = a - 1;
+        x = 0;
     }
-    while (a < 20) {
-        a = a + 2;
+
+    while (y > 0) {
+        y = y - 1;
     }
-    return a;
+
+    do {
+        x = x * 2;
+    } while (x < 100);
+
+    bool flag = true;
+    char c = 'A';
+    int hexVal = 0x1F;
+    int bitsVal = 0b1010;
+}
+
+int calculate(int a, int b) {
+    int res = a + b;
+    return res;
 }

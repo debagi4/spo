@@ -1,28 +1,49 @@
-# Makefile
+# Компиляторы
+CXX = g++
 CC = gcc
-CFLAGS = -Wall -Wextra -g
-BISON = bison
-FLEX = flex
 
-SOURCES = main.c ast.c dgml_writer.c parser_interface.c
-HEADERS = ast.h dgml_writer.h parser_interface.h
-PARSER_SOURCES = parser.tab.c lex.yy.c
+# Флаги компиляции
+CFLAGS = -Wall -Wextra -g -I./src -I./parser/grammar -I/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -I./src -I./parser/grammar -I/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime
 
-all: lab1
+# Флаги линковки
+LDFLAGS = -L/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/lib -lantlr4-runtime
 
-lab1: $(SOURCES) $(PARSER_SOURCES) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(SOURCES) $(PARSER_SOURCES)
+# Исходники
+SRC_C = src/main.c src/dgml_writer.c src/Tree.c
+SRC_CPP = src/parser_wrapper.cpp parser/grammar/BagiLexer.cpp parser/grammar/BagiParser.cpp parser/grammar/BagiBaseListener.cpp parser/grammar/BagiListener.cpp
 
-parser.tab.c parser.tab.h: parser.y
-	$(BISON) -d parser.y
+# Объекты
+OBJ_C = $(SRC_C:.c=.o)
+OBJ_CPP = $(SRC_CPP:.cpp=.o)
 
-lex.yy.c: lexer.l parser.tab.h
-	$(FLEX) lexer.l
+# ANTLR
+ANTLR_BIN = antlr-4.13.2-complete.jar
+GRAMMAR = grammar/Bagi.g4
+ANTLR_OUT = parser
 
-clean:
-	rm -f lab1 parser.tab.c parser.tab.h lex.yy.c *.dgml
+# Цель по умолчанию
+all: clean make_parser lab1 test
+
+# Генерация парсера ANTLR
+make_parser:
+	java -jar $(ANTLR_BIN) -Dlanguage=Cpp -visitor -o $(ANTLR_OUT) $(GRAMMAR)
+
+# Сборка программы
+lab1: $(OBJ_C) $(OBJ_CPP)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+# Правила компиляции C
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Правила компиляции C++
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: lab1
-	./lab1 test.txt -o test_output.dgml
+	./lab1 test.txt test_output.dgml
 
-.PHONY: all clean test
+# Очистка
+clean:
+	rm -f $(OBJ_C) $(OBJ_CPP) lab1

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph Title="AST" xmlns="http://schemas.microsoft.com/vs/2009/dgml">
+ <Nodes>
+  <Node Id="0" Label="root : " />
+  <Node Id="1" Label="funcDef : " />
+  <Node Id="2" Label="block : " />
+  <Node Id="3" Label="varDecl : intx=10;" />
+  <Node Id="4" Label="varDecl : inty=20;" />
+  <Node Id="5" Label="varDecl : x=x+y;" />
+  <Node Id="6" Label="if : " />
+  <Node Id="7" Label="block : " />
+  <Node Id="8" Label="varDecl : stringmessage=&quot;Hello&quot;;" />
+  <Node Id="9" Label="block : " />
+  <Node Id="10" Label="varDecl : x=0;" />
+  <Node Id="11" Label="while : " />
+  <Node Id="12" Label="block : " />
+  <Node Id="13" Label="varDecl : y=y-1;" />
+  <Node Id="14" Label="doWhile : " />
+  <Node Id="15" Label="block : " />
+  <Node Id="16" Label="varDecl : x=x*2;" />
+  <Node Id="17" Label="varDecl : boolflag=true;" />
+  <Node Id="18" Label="varDecl : charc=&apos;A&apos;;" />
+  <Node Id="19" Label="varDecl : inthexVal=0x1F;" />
+  <Node Id="20" Label="varDecl : intbitsVal=0b1010;" />
+  <Node Id="21" Label="funcDef : " />
+  <Node Id="22" Label="block : " />
+  <Node Id="23" Label="varDecl : intres=a+b;" />
+  <Node Id="24" Label="varDecl : returnres;" />
+ </Nodes>
+ <Links>
+  <Link Source="0" Target="1" />
+  <Link Source="1" Target="2" />
+  <Link Source="2" Target="3" />
+  <Link Source="2" Target="4" />
+  <Link Source="2" Target="5" />
+  <Link Source="2" Target="6" />
+  <Link Source="6" Target="7" />
+  <Link Source="7" Target="8" />
+  <Link Source="6" Target="9" />
+  <Link Source="9" Target="10" />
+  <Link Source="2" Target="11" />
+  <Link Source="11" Target="12" />
+  <Link Source="12" Target="13" />
+  <Link Source="2" Target="14" />
+  <Link Source="14" Target="15" />
+  <Link Source="15" Target="16" />
+  <Link Source="2" Target="17" />
+  <Link Source="2" Target="18" />
+  <Link Source="2" Target="19" />
+  <Link Source="2" Target="20" />
+  <Link Source="0" Target="21" />
+  <Link Source="21" Target="22" />
+  <Link Source="22" Target="23" />
+  <Link Source="22" Target="24" />
+ </Links>
+</DirectedGraph>
