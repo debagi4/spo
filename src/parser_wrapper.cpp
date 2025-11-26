@@ -2,7 +2,8 @@
 #include "../parser/grammar/BagiParser.h"
 #include "../parser/grammar/BagiBaseListener.h"
 #include "antlr4-runtime.h"
-#include "Tree.h"  // Include Tree.h directly
+#include "Tree.h"
+#include "parse_wrapper.h"
 #include <string>
 
 using namespace antlr4;
@@ -12,10 +13,13 @@ class TreeListener : public BagiBaseListener {
 public:
     Tree* tree;
     std::vector<Tree*> stack;  // стек родителей
+    std::vector<Tree*> all_nodes;
+    std::vector<char*> errors;
 
     TreeListener() {
         tree = create_node("root", "");
         stack.push_back(tree);
+        all_nodes.push_back(tree);
     }
 
     // Вспомогательная функция для добавления узла к текущему родителю
@@ -23,6 +27,11 @@ public:
         Tree* parent = stack.back();
         add_child(parent, node);
         stack.push_back(node); // новый узел становится текущим родителем
+        all_nodes.push_back(node);
+    }
+
+    void add_error(const std::string& error) {
+        errors.push_back(strdup(error.c_str()));
     }
 
     // После выхода из узла убираем его из стека
@@ -84,7 +93,7 @@ public:
 };
 
 extern "C" {
-    Tree* parse(const char* inp) {
+    ParseResult* parse(const char* inp) {
         ANTLRInputStream input(inp);
         BagiLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
@@ -95,6 +104,21 @@ extern "C" {
         TreeListener listener;
         antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, parse_tree);
 
-        return listener.tree;
+        ParseResult* result = new ParseResult();
+        result->size = listener.all_nodes.size();
+        result->tree = listener.tree;
+
+        result->nodes = new Tree*[listener.all_nodes.size()];
+        for (size_t i = 0; i < listener.all_nodes.size(); ++i) {
+            result->nodes[i] = listener.all_nodes[i];
+        }
+
+        result->errors = new char*[listener.errors.size()];
+        for (size_t i = 0; i < listener.errors.size(); ++i) {
+            result->errors[i] = listener.errors[i];
+        }
+        result->errorsCount = listener.errors.size();
+
+        return result;
     }
 }

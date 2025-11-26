@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 typedef struct Tree {
+    int id;
     char* type;
     char* value;
     struct Tree** children;

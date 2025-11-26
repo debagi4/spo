@@ -27,7 +27,7 @@ char* xml_escape(const char* s) {
 }
 
 static void write_node(FILE* f, Tree* node, int* id_counter, int parent_id, FILE* link_f) {
-    int my_id = (*id_counter)++;
+    node->id = (*id_counter)++;
 
     char* value_escaped = "";
     char* tmp = NULL;
@@ -36,14 +36,14 @@ static void write_node(FILE* f, Tree* node, int* id_counter, int parent_id, FILE
         value_escaped = tmp;
     }
 
-    fprintf(f, "  <Node Id=\"%d\" Label=\"%s : %s\" />\n", my_id, node->type, value_escaped[0] ? value_escaped: "");
+    fprintf(f, "  <Node Id=\"%d\" Label=\"%s : %s\" />\n", node->id, node->type, value_escaped[0] ? value_escaped: "");
 
     if (parent_id >= 0) {
-        fprintf(link_f, "  <Link Source=\"%d\" Target=\"%d\" />\n", parent_id, my_id);
+        fprintf(link_f, "  <Link Source=\"%d\" Target=\"%d\" />\n", parent_id, node->id);
     }
 
     for (int i = 0; i < node->child_count; i++) {
-        write_node(f, node->children[i], id_counter, my_id, link_f);
+        write_node(f, node->children[i], id_counter, node->id, link_f);
     }
 
     if (tmp) free(tmp);

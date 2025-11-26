@@ -10,7 +10,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -g -I./src -I./parser/grammar -I/opt/homebre
 LDFLAGS = -L/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/lib -lantlr4-runtime
 
 # Исходники
-SRC_C = src/main.c src/dgml_writer.c src/Tree.c
+SRC_C = src/main.c src/dgml_writer.c src/Tree.c src/execution.c
 SRC_CPP = src/parser_wrapper.cpp parser/grammar/BagiLexer.cpp parser/grammar/BagiParser.cpp parser/grammar/BagiBaseListener.cpp parser/grammar/BagiListener.cpp
 
 # Объекты
@@ -42,7 +42,10 @@ lab1: $(OBJ_C) $(OBJ_CPP)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: lab1
-	./lab1 test.txt test_output.dgml
+	./lab1 output test.txt test2.txt
+
+debug: lab1
+	lldb ./lab1
 
 # Очистка
 clean:
