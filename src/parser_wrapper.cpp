@@ -58,13 +58,19 @@ public:
     void enterVarDecl(BagiParser::VarDeclContext *ctx) override {
         Tree* node = create_node("varDecl", ctx->getText().c_str());
         add_node(node);
-        pop_node(); // varDecl не имеет детей
+    }
+
+    void exitVarDecl(BagiParser::VarDeclContext *ctx) override {
+        pop_node();
     }
 
     void enterExprStatement(BagiParser::ExprStatementContext *ctx) override {
         Tree* node = create_node("expr", ctx->getText().c_str());
         add_node(node);
-        pop_node(); // expr не имеет детей
+    }
+
+    void exitExprStatement(BagiParser::ExprStatementContext *ctx) override {
+        pop_node();
     }
 
     void enterIfStatement(BagiParser::IfStatementContext *ctx) override {

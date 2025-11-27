@@ -1,6 +1,7 @@
 #include "dgml_writer.h"
-#include <stdio.h>
 #include "Tree.h"
+#include "cfg.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -49,6 +50,15 @@ static void write_node(FILE* f, Tree* node, int* id_counter, int parent_id, FILE
     if (tmp) free(tmp);
 }
 
+static void write_dgml_header(FILE* f) {
+    fprintf(f, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+    fprintf(f, "<DirectedGraph xmlns=\"http://schemas.microsoft.com/vs/2009/dgml\">\n");
+}
+
+static void write_dgml_footer(FILE* f) {
+    fprintf(f, "</DirectedGraph>\n");
+}
+
 void write_dgml(Tree* root, const char* filename) {
     FILE* f = fopen(filename, "w");
     if (!f) return;
@@ -72,4 +82,84 @@ void write_dgml(Tree* root, const char* filename) {
 
     fprintf(f, " </Links>\n</DirectedGraph>\n");
     fclose(f);
+}
+
+int dgml_write_cfg(const ControlFlowGraph* cfg, const char* path) {
+    FILE* f = fopen(path, "w");
+    if (!f) return -1;
+
+    write_dgml_header(f);
+
+    fprintf(f, "  <Nodes>\n");
+    for (size_t i = 0; i < cfg->block_count; ++i) {
+        const BasicBlock* bb = &cfg->blocks[i];
+        char id[32];
+        snprintf(id, sizeof(id), "B%d", bb->id);
+
+        char label[64];
+        snprintf(label, sizeof(label), "%s%s%s",
+                 id,
+                 bb->is_entry ? " (entry)" : "",
+                 bb->is_exit  ? " (exit)"  : "");
+
+        fprintf(f, "    <Node Id=\"%s\" Label=\"%s\" />\n", id, label);
+    }
+    fprintf(f, "  </Nodes>\n");
+
+    fprintf(f, "  <Links>\n");
+    for (size_t i = 0; i < cfg->block_count; ++i) {
+        const BasicBlock* bb = &cfg->blocks[i];
+        char src[32];
+        snprintf(src, sizeof(src), "B%d", bb->id);
+
+        if (bb->next != CFG_INVALID_BLOCK) {
+            char dst[32];
+            snprintf(dst, sizeof(dst), "B%d", bb->next);
+            fprintf(f, "    <Link Source=\"%s\" Target=\"%s\" Label=\"next\" />\n",
+                    src, dst);
+        }
+        if (bb->true_target != CFG_INVALID_BLOCK) {
+            char dst[32];
+            snprintf(dst, sizeof(dst), "B%d", bb->true_target);
+            fprintf(f, "    <Link Source=\"%s\" Target=\"%s\" Label=\"true\" />\n",
+                    src, dst);
+        }
+        if (bb->false_target != CFG_INVALID_BLOCK) {
+            char dst[32];
+            snprintf(dst, sizeof(dst), "B%d", bb->false_target);
+            fprintf(f, "    <Link Source=\"%s\" Target=\"%s\" Label=\"false\" />\n",
+                    src, dst);
+        }
+    }
+    fprintf(f, "  </Links>\n");
+
+    write_dgml_footer(f);
+    fclose(f);
+    return 0;
+}
+
+int dgml_write_call_graph(const CallGraph* cg, const char* path) {
+    FILE* f = fopen(path, "w");
+    if (!f) return -1;
+
+    write_dgml_header(f);
+
+    fprintf(f, "  <Nodes>\n");
+    for (size_t i = 0; i < cg->func_count; ++i) {
+        const char* name = cg->functions[i];
+        fprintf(f, "    <Node Id=\"%s\" Label=\"%s\" />\n", name, name);
+    }
+    fprintf(f, "  </Nodes>\n");
+
+    fprintf(f, "  <Links>\n");
+    for (size_t i = 0; i < cg->edge_count; ++i) {
+        const CallGraphEdge* e = &cg->edges[i];
+        fprintf(f, "    <Link Source=\"%s\" Target=\"%s\" />\n",
+                e->caller, e->callee);
+    }
+    fprintf(f, "  </Links>\n");
+
+    write_dgml_footer(f);
+    fclose(f);
+    return 0;
 }
