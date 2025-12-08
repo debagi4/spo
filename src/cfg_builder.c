@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-/* ---------- Вспомогательные утилиты ---------- */
-
 static char *cfg_strdup(const char *s) {
     if (!s) return NULL;
     size_t len = strlen(s);
@@ -25,7 +23,6 @@ void cfg_module_result_init(CfgModuleResult *r) {
 void cfg_module_result_free(CfgModuleResult *r) {
     if (!r) return;
 
-    /* Освобождаем CFG */
     for (size_t i = 0; i < r->program.file_count; ++i) {
         FileInfo *fi = &r->program.files[i];
         for (size_t j = 0; j < fi->func_count; ++j) {
@@ -35,17 +32,15 @@ void cfg_module_result_free(CfgModuleResult *r) {
             if (cfg->blocks) {
                 for (size_t b = 0; b < cfg->block_count; ++b) {
                     BasicBlock *bb = &cfg->blocks[b];
-                    free(bb->operations); /* сами OperationTree не трогаем */
+                    free(bb->operations);
                 }
                 free(cfg->blocks);
             }
         }
         free(fi->functions);
-        /* fi->path, signature.name и т.п. считаем принадлежащими парсеру */
     }
     free(r->program.files);
 
-    /* Граф вызовов */
     for (size_t i = 0; i < r->call_graph.func_count; ++i)
         free(r->call_graph.functions[i]);
     free(r->call_graph.functions);
@@ -56,7 +51,6 @@ void cfg_module_result_free(CfgModuleResult *r) {
     }
     free(r->call_graph.edges);
 
-    /* Ошибки */
     for (size_t i = 0; i < r->error_count; ++i) {
         free(r->errors[i].message);
     }
@@ -88,8 +82,6 @@ static void add_error(CfgModuleResult *result,
     e->message = cfg_strdup(msg);
     e->loc = loc;
 }
-
-/* ---------- Работа с CFG: блоки и операции ---------- */
 
 static BasicBlockId cfg_new_block(ControlFlowGraph *cfg) {
     if (cfg->block_count == cfg->block_capacity) {
@@ -147,8 +139,6 @@ static void cfg_append_operation(BasicBlock *block, OperationTree op) {
     }
     block->operations[block->op_count++] = op;
 }
-
-/* ---------- Стек целей break/continue ---------- */
 
 typedef struct {
     ControlFlowGraph *cfg;
@@ -215,8 +205,6 @@ static BasicBlockId current_continue_target(const CfgBuildContext *ctx) {
     return ctx->cont_targets[ctx->cont_count - 1];
 }
 
-/* ---------- Рекурсивная генерация CFG ---------- */
-
 typedef struct {
     BasicBlockId entry;
     BasicBlockId exit;
@@ -230,7 +218,6 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
                              CfgStmt *stmt,
                              BasicBlockId current);
 
-/* Список операторов подряд */
 static BlockRange build_stmt_list(CfgBuildContext *ctx,
                                   CfgStmt *first_stmt,
                                   BasicBlockId current) {
@@ -243,7 +230,6 @@ static BlockRange build_stmt_list(CfgBuildContext *ctx,
     while (stmt) {
         BasicBlock *block = cfg_get_block(ctx->cfg, cur);
 
-        /* Если блок уже завершён безусловным переходом — создаём новый */
         if (block->terminated_by_jump) {
             cur = cfg_new_block(ctx->cfg);
         }
@@ -258,7 +244,6 @@ static BlockRange build_stmt_list(CfgBuildContext *ctx,
     return r;
 }
 
-/* Один оператор */
 static BlockRange build_stmt(CfgBuildContext *ctx,
                              CfgStmt *stmt,
                              BasicBlockId current) {
@@ -322,8 +307,6 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
         }
 
         case CFG_STMT_WHILE: {
-            /* while(cond) body; */
-
             BasicBlockId condId = current;
             if (curBlock->op_count > 0) {
                 condId = cfg_new_block(cfg);
@@ -362,8 +345,6 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
         }
 
         case CFG_STMT_DO_WHILE: {
-            /* do { body } while(cond); */
-
             BasicBlockId bodyId = current;
             BasicBlockId condId = cfg_new_block(cfg);
             BasicBlockId afterId = cfg_new_block(cfg);
@@ -398,9 +379,6 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
         }
 
         case CFG_STMT_FOR: {
-            /* for(init; cond; step) body; */
-
-            /* init */
             BlockRange initRange = build_stmt_list(
                 ctx, stmt->u.for_stmt.init, current
             );
@@ -408,7 +386,7 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
             BasicBlockId condId = initRange.exit;
             BasicBlock *condBlock = cfg_get_block(cfg, condId);
 
-            cfg_append_operation(condBlock, stmt->op); /* cond */
+            cfg_append_operation(condBlock, stmt->op);
             stmt->op = NULL;
 
             BasicBlockId bodyId = cfg_new_block(cfg);
@@ -421,12 +399,10 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
             push_break(ctx, afterId);
             push_continue(ctx, stepId);
 
-            /* тело */
             BlockRange bodyRange = build_stmt_list(
                 ctx, stmt->u.for_stmt.body, bodyId
             );
 
-            /* если из тела не было безусловного выхода — идём в step */
             BasicBlock *bodyExit = cfg_get_block(cfg, bodyRange.exit);
             if (!bodyExit->terminated_by_jump &&
                 bodyExit->next == CFG_INVALID_BLOCK &&
@@ -434,7 +410,6 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
                 bodyExit->next = stepId;
             }
 
-            /* шаг */
             BlockRange stepRange = build_stmt_list(
                 ctx, stmt->u.for_stmt.step, stepId
             );
@@ -497,8 +472,6 @@ static BlockRange build_stmt(CfgBuildContext *ctx,
     return r;
 }
 
-/* ---------- Построение CFG одной функции ---------- */
-
 ControlFlowGraph cfg_build_function_cfg(const CfgFunctionAst *func_ast,
                                         CfgModuleResult *result) {
     ControlFlowGraph cfg;
@@ -533,7 +506,6 @@ ControlFlowGraph cfg_build_function_cfg(const CfgFunctionAst *func_ast,
         &ctx, func_ast->body, entryId
     );
 
-    /* если последний блок не заканчивается явным переходом — ведём в exit */
     BasicBlock *last = cfg_get_block(&cfg, bodyRange.exit);
     if (!last->terminated_by_jump &&
         last->next == CFG_INVALID_BLOCK &&
@@ -546,8 +518,6 @@ ControlFlowGraph cfg_build_function_cfg(const CfgFunctionAst *func_ast,
 
     return cfg;
 }
-
-/* ---------- Группировка по файлам и граф вызовов ---------- */
 
 static FileInfo *find_or_add_file(ProgramInfo *prog, const char *path) {
     for (size_t i = 0; i < prog->file_count; ++i) {
@@ -571,7 +541,7 @@ static FileInfo *find_or_add_file(ProgramInfo *prog, const char *path) {
 
     FileInfo *fi = &prog->files[prog->file_count++];
     memset(fi, 0, sizeof(*fi));
-    fi->path = (char *) path; /* указатель, не копируем; при желании можно сделать strdup */
+    fi->path = (char *) path;
     return fi;
 }
 
@@ -594,8 +564,6 @@ static FunctionInfo *append_function(FileInfo *fi) {
     memset(f, 0, sizeof(*f));
     return f;
 }
-
-/* --- Граф вызовов --- */
 
 static void call_graph_add_function(CallGraph *cg, const char *name) {
     for (size_t i = 0; i < cg->func_count; ++i) {
@@ -654,7 +622,6 @@ static void call_graph_add_edge(CallGraph *cg,
     e->callee = cfg_strdup(callee);
 }
 
-/* рекурсивный обход дерева операций для поиска вызовов */
 static void collect_calls_from_tree(const OperationTreeNode *node,
                                     const char *current_func,
                                     CallGraph *cg) {
@@ -682,8 +649,6 @@ static void collect_calls_from_tree(const OperationTreeNode *node,
     }
 }
 
-/* ---------- Построение CFG для всей программы ---------- */
-
 void cfg_build_program(const CfgFunctionAst *funcs,
                        size_t func_count,
                        CfgModuleResult *result) {
@@ -702,7 +667,6 @@ void cfg_build_program(const CfgFunctionAst *funcs,
         f->source_file = fAst->source_file;
     }
 
-    /* Граф вызовов */
     for (size_t i = 0; i < result->program.file_count; ++i) {
         FileInfo *fi = &result->program.files[i];
         for (size_t j = 0; j < fi->func_count; ++j) {

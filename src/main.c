@@ -11,7 +11,6 @@
 #include "cfg_from_tree.h"
 #include "dot_writer.h"
 
-// Объявляем функцию из C++ обёртки
 ParseResult *parse(const char *inp);
 
 int main(int argc, char **argv) {

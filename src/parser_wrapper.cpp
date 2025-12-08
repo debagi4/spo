@@ -8,11 +8,10 @@
 
 using namespace antlr4;
 
-// Слушатель для построения AST
 class TreeListener : public BagiBaseListener {
 public:
     Tree* tree;
-    std::vector<Tree*> stack;  // стек родителей
+    std::vector<Tree*> stack;
     std::vector<Tree*> all_nodes;
     std::vector<char*> errors;
 
@@ -22,11 +21,10 @@ public:
         all_nodes.push_back(tree);
     }
 
-    // Вспомогательная функция для добавления узла к текущему родителю
     void add_node(Tree* node) {
         Tree* parent = stack.back();
         add_child(parent, node);
-        stack.push_back(node); // новый узел становится текущим родителем
+        stack.push_back(node);
         all_nodes.push_back(node);
     }
 
@@ -34,7 +32,6 @@ public:
         errors.push_back(strdup(error.c_str()));
     }
 
-    // После выхода из узла убираем его из стека
     void pop_node() {
         stack.pop_back();
     }

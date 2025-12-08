@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ---------- утилита: строка-добавлялка с realloc ---------- */
-
 static void append_str(char** buf, size_t* len, size_t* cap, const char* s) {
     if (!s) return;
     size_t add = strlen(s);
@@ -30,8 +28,6 @@ static void append_str(char** buf, size_t* len, size_t* cap, const char* s) {
     (*buf)[*len] = '\0';
 }
 
-/* ---------- escape для dot-меток: \n, ", \ ---------- */
-
 static char* escape_dot_label(const char* s) {
     if (!s) {
         char* r = (char*)malloc(1);
@@ -48,7 +44,6 @@ static char* escape_dot_label(const char* s) {
         if (c == '\n') {
             append_str(&buf, &len, &cap, "\\n");
         } else if (c == '\r') {
-            /* игнорируем или можно сделать \\n */
         } else if (c == '"') {
             append_str(&buf, &len, &cap, "\\\"");
         } else if (c == '\\') {
@@ -62,35 +57,28 @@ static char* escape_dot_label(const char* s) {
     return buf;
 }
 
-/* escape для идентификаторов (простее: экранируем только " и \) */
 static char* escape_dot_id(const char* s) {
     return escape_dot_label(s);
 }
 
-/* ---------- строковое представление вида операции ---------- */
 
 static const char* op_kind_to_string(OperationKind k) {
     switch (k) {
         case OP_ASSIGN:      return "ASSIGN";
-        case OP_BINARY:      return "BINARY";
-        case OP_UNARY:       return "UNARY";
         case OP_CALL:        return "CALL";
         case OP_RETURN:      return "RETURN";
         case OP_BRANCH_COND: return "BRANCH_COND";
-        case OP_JUMP:        return "JUMP";
         case OP_UNKNOWN:
         default:             return "OP";
     }
 }
 
-/* ---------- собрать label для одного базового блока ---------- */
 
 static char* build_block_label(const BasicBlock* bb) {
     char* buf = NULL;
     size_t len = 0, cap = 0;
     char tmp[128];
 
-    /* первая строка: B<i> (+ entry/exit) */
     snprintf(tmp, sizeof(tmp), "B%d", bb->id);
     append_str(&buf, &len, &cap, tmp);
 
@@ -101,7 +89,6 @@ static char* build_block_label(const BasicBlock* bb) {
         append_str(&buf, &len, &cap, " (exit)");
     }
 
-    /* далее — по строке на каждую OperationTree в блоке */
     for (size_t i = 0; i < bb->op_count; ++i) {
         OperationTree t = bb->operations[i];
         if (!t) continue;
@@ -110,7 +97,7 @@ static char* build_block_label(const BasicBlock* bb) {
         const char* kind_str = op_kind_to_string(op->kind);
         const char* text = (op->op ? op->op : "");
 
-        append_str(&buf, &len, &cap, "\n"); /* новая строка внутри label */
+        append_str(&buf, &len, &cap, "\n");
 
         append_str(&buf, &len, &cap, kind_str);
         append_str(&buf, &len, &cap, ": ");
@@ -130,8 +117,6 @@ static char* build_block_label(const BasicBlock* bb) {
     return buf;
 }
 
-/* ---------- вывод CFG в dot ---------- */
-
 int dot_write_cfg(const ControlFlowGraph* cfg, const char* path) {
     if (!cfg || !path) return -1;
 
@@ -148,7 +133,6 @@ int dot_write_cfg(const ControlFlowGraph* cfg, const char* path) {
     fprintf(f, "  node [shape=box, fontsize=10];\n");
     fprintf(f, "  rankdir=TB;\n\n");
 
-    /* узлы */
     for (size_t i = 0; i < cfg->block_count; ++i) {
         const BasicBlock* bb = &cfg->blocks[i];
 
@@ -158,7 +142,6 @@ int dot_write_cfg(const ControlFlowGraph* cfg, const char* path) {
         char* raw_label = build_block_label(bb);
         char* esc_label = escape_dot_label(raw_label);
 
-        /* проверяем, есть ли в блоке условие */
         int has_branch = 0;
         for (size_t i = 0; i < bb->op_count; ++i) {
             OperationTree t = bb->operations[i];
@@ -168,11 +151,6 @@ int dot_write_cfg(const ControlFlowGraph* cfg, const char* path) {
             }
         }
 
-        /* выберем форму:
-           - ромб для условий
-           - овал для entry/exit
-           - прямоугольник для обычных блоков
-        */
         const char* shape = "box";
         if (bb->is_entry || bb->is_exit) {
             shape = "oval";
@@ -192,7 +170,6 @@ int dot_write_cfg(const ControlFlowGraph* cfg, const char* path) {
 
     fprintf(f, "\n");
 
-    /* рёбра */
     for (size_t i = 0; i < cfg->block_count; ++i) {
         const BasicBlock* bb = &cfg->blocks[i];
         char src[32];
@@ -221,8 +198,6 @@ int dot_write_cfg(const ControlFlowGraph* cfg, const char* path) {
     return 0;
 }
 
-/* ---------- вывод графа вызовов в dot ---------- */
-
 int dot_write_call_graph(const CallGraph* cg, const char* path) {
     if (!cg || !path) return -1;
 
@@ -235,7 +210,6 @@ int dot_write_call_graph(const CallGraph* cg, const char* path) {
     fprintf(f, "digraph CallGraph {\n");
     fprintf(f, "  node [shape=ellipse, fontsize=10];\n\n");
 
-    /* узлы-функции */
     for (size_t i = 0; i < cg->func_count; ++i) {
         const char* name = cg->functions[i];
         if (!name) continue;
@@ -249,7 +223,6 @@ int dot_write_call_graph(const CallGraph* cg, const char* path) {
 
     fprintf(f, "\n");
 
-    /* рёбра вызовов */
     for (size_t i = 0; i < cg->edge_count; ++i) {
         const CallGraphEdge* e = &cg->edges[i];
         if (!e->caller || !e->callee) continue;

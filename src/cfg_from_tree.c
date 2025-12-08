@@ -8,8 +8,6 @@
 #include <stdio.h>
 #include <ctype.h>
 
-/* ---------- Вспомогательные функции ---------- */
-
 static int is_type(const Tree *node, const char *type) {
     return node && node->type && strcmp(node->type, type) == 0;
 }
@@ -22,10 +20,8 @@ static SourceLocation make_loc(const char *file) {
     return loc;
 }
 
-/* Нумерация анонимных функций, если не можем вытащить имя */
 static int anon_func_counter = 0;
 
-/* Вытащить имя функции из текста вида "int main(a, b) { ... }" */
 static char *extract_func_name(const char *text) {
     if (!text) goto anon;
 
@@ -67,7 +63,6 @@ anon: {
     }
 }
 
-/* Определить, похоже ли выражение на вызов функции: foo(...) */
 static OperationKind guess_kind_and_name(const char *text, char **outName) {
     if (!text) {
         *outName = NULL;
@@ -456,8 +451,6 @@ static void collect_functions_from_tree(Tree *node,
         collect_functions_from_tree(node->children[i], filename, out);
     }
 }
-
-/* ---------- Публичная функция ---------- */
 
 FileFunctions build_cfg_from_parse_result(const char *filename,
                                           const ParseResult *pr) {
